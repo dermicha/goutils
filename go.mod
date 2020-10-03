@@ -1,4 +1,4 @@
-module goutils
+module github.com/dermicha/goutils
 
 go 1.15
 
