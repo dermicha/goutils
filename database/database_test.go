@@ -1,10 +1,9 @@
 package database
 
 import (
-	"fmt"
+	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"gorm.io/gorm/utils"
-	"log"
 	"testing"
 )
 
@@ -14,20 +13,26 @@ type TestObject struct {
 }
 
 var (
-	//dbName     = ":memory:"
-	dbName     = "testdatabase"
-	testDbName = fmt.Sprintf("%s_test", dbName)
+	testDbName = ":memory:"
+	//dbName     = "testdatabase"
+	//testDbName = fmt.Sprintf("%s_test", dbName)
 )
 
 func setup() {
-	log.Println("test setup")
+	log.SetFormatter(&log.TextFormatter{
+		DisableColors: false,
+		FullTimestamp: true,
+	})
+	log.SetLevel(log.DebugLevel)
+
+	log.Info("test setup")
 	CleanUpDb(testDbName)
 	InitDatabase(testDbName)
 	MigrateDatabase(&TestObject{})
 }
 
 func tearDown() {
-	log.Println("test teardown")
+	log.Info("test teardown")
 	CloseDatabase()
 	CleanUpDb(testDbName)
 }
