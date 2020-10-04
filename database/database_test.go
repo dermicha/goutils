@@ -14,21 +14,22 @@ type TestObject struct {
 }
 
 var (
-	dbName     = "test_db"
+	//dbName     = ":memory:"
+	dbName     = "testdatabase"
 	testDbName = fmt.Sprintf("%s_test", dbName)
 )
 
 func setup() {
 	log.Println("test setup")
+	CleanUpDb(testDbName)
 	InitDatabase(testDbName)
 	MigrateDatabase(&TestObject{})
-	CleanUpDb(testDbName)
 }
 
 func tearDown() {
 	log.Println("test teardown")
 	CloseDatabase()
-	//CleanUpDb(testDbName)
+	CleanUpDb(testDbName)
 }
 
 func TestSetup(t *testing.T) {
@@ -43,15 +44,61 @@ func TestCrud(t *testing.T) {
 	tObj := TestObject{}
 	tObj.UniqueName = "Name 1"
 	resCreate := GetDb().Create(&tObj)
+	if resCreate.RowsAffected != 1 {
+		t.Fatalf("wrong number of rows effected: %d", resCreate.RowsAffected)
+	}
+	if tObj.ID != 1 {
+		t.Fatalf("wrong object id: %d", tObj.ID)
+	}
 	utils.AssertEqual(resCreate.RowsAffected, 1)
 	utils.AssertEqual(tObj.ID, 1)
 
 	tObj2 := TestObject{}
 	tObj2.UniqueName = "Name 2"
 	resCreate2 := GetDb().Create(&tObj2)
-	utils.AssertEqual(resCreate2.RowsAffected, 0)
-	utils.AssertEqual(tObj2.ID, 0)
+	if resCreate2.RowsAffected != 1 {
+		t.Fatalf("wrong number of rows effected: %d", resCreate2.RowsAffected)
+	}
+	if tObj2.ID != 2 {
+		t.Fatalf("wrong object id: %d", tObj2.ID)
+	}
 
 	resDel := GetDb().Delete(tObj)
-	utils.AssertEqual(resDel.RowsAffected, 1)
+	if resDel.RowsAffected != 1 {
+		t.Fatalf("wrong number of rows effected: %d", resDel.RowsAffected)
+	}
+
+	resDel2 := GetDb().Delete(tObj2)
+	if resDel2.RowsAffected != 1 {
+		t.Fatalf("wrong number of rows effected: %d", resDel2.RowsAffected)
+	}
+}
+
+func TestUniqueIndex(t *testing.T) {
+	setup()
+	defer tearDown()
+
+	tObj := TestObject{}
+	tObj.UniqueName = "UniqueTest Name 1"
+	resCreate1 := GetDb().Create(&tObj)
+	resCreate2 := GetDb().Create(&tObj)
+
+	if resCreate1.RowsAffected != 1 {
+		t.Fatalf("wrong number of rows effected: %d", resCreate1.RowsAffected)
+	}
+	if tObj.ID != 1 {
+		t.Fatalf("wrong object id: %d", tObj.ID)
+	}
+	if resCreate2.RowsAffected != 0 {
+		t.Fatalf("wrong number of rows effected: %d", resCreate2.RowsAffected)
+	}
+	if resCreate2.Error.Error() != "UNIQUE constraint failed: test_objects.id" {
+		t.Fatalf("unique index failed")
+	}
+
+	//utils.AssertEqual(t, resCreate1.RowsAffected, 1)
+	//utils.AssertEqual(tObj.ID, 1)
+	//utils.AssertEqual(resCreate2.RowsAffected, -1)
+	//utils.AssertEqual(resCreate2.Error.Error(), "UNIQUE constraint failed: test_objects.id")
+
 }
