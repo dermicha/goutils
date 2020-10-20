@@ -6,6 +6,7 @@ import (
 	"gorm.io/driver/sqlite"
 	_ "gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 	"os"
 	"strings"
 )
@@ -23,14 +24,21 @@ func CleanUpDb(dbName string) {
 	}
 }
 
-func InitDatabase(dbName string) {
+func InitDatabase(dbName string, conf *gorm.Config) {
 	log.Debug("initDatabase")
 	var err error
-
-	gConf := gorm.Config{
-		DryRun:            false,
-		PrepareStmt:       false,
-		AllowGlobalUpdate: true,
+	//logger := log.New()
+	var gConf gorm.Config
+	if conf != nil {
+		gConf = *conf
+	} else {
+		gConf = gorm.Config{
+			DryRun:            false,
+			PrepareStmt:       false,
+			AllowGlobalUpdate: true,
+			//Logger: logger.,
+			Logger: logger.Default.LogMode(logger.Warn),
+		}
 	}
 
 	fullDbName := getDbPath(dbName)

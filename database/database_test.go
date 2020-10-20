@@ -23,7 +23,7 @@ func setup() {
 		DisableColors: false,
 		FullTimestamp: true,
 	})
-	log.SetLevel(log.DebugLevel)
+	log.SetLevel(log.InfoLevel)
 
 	log.Info("test setup")
 	CleanUpDb(testDbName)
