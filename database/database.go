@@ -4,7 +4,6 @@ import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/driver/sqlite"
-	_ "gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"os"

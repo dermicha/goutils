@@ -1,8 +1,9 @@
-package database
+package database_pg
 
 import (
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 	"gorm.io/gorm/utils"
 	"testing"
 )
@@ -12,11 +13,10 @@ type TestObject struct {
 	UniqueName string `gorm:"column:unique_name" gorm:"uniqueIndex"`
 }
 
-var (
-	testDbName = ":memory:"
-	//dbName     = "testdatabase"
-	//testDbName = fmt.Sprintf("%s_test", dbName)
-)
+func cleanUpDb() {
+	db := GetDb()
+	db.Exec("drop table if exists test_objects;")
+}
 
 func setup() {
 	log.SetFormatter(&log.TextFormatter{
@@ -26,15 +26,24 @@ func setup() {
 	log.SetLevel(log.InfoLevel)
 
 	log.Info("test setup")
-	CleanUpDb(testDbName)
-	InitDatabase(testDbName, nil)
+
+	gConf := &gorm.Config{
+		DryRun:            false,
+		PrepareStmt:       false,
+		AllowGlobalUpdate: true,
+		//Logger: logger.,
+		Logger: logger.Default.LogMode(logger.Info),
+	}
+
+	InitDatabase("", gConf)
+	cleanUpDb()
 	MigrateDatabase(&TestObject{})
 }
 
 func tearDown() {
 	log.Info("test teardown")
 	CloseDatabase()
-	CleanUpDb(testDbName)
+	cleanUpDb()
 }
 
 func TestSetup(t *testing.T) {
@@ -52,7 +61,7 @@ func TestCrud(t *testing.T) {
 	if resCreate.RowsAffected != 1 {
 		t.Fatalf("wrong number of rows effected: %d", resCreate.RowsAffected)
 	}
-	if tObj.ID != 1 {
+	if tObj.ID < 1 {
 		t.Fatalf("wrong object id: %d", tObj.ID)
 	}
 	utils.AssertEqual(resCreate.RowsAffected, 1)
@@ -64,7 +73,7 @@ func TestCrud(t *testing.T) {
 	if resCreate2.RowsAffected != 1 {
 		t.Fatalf("wrong number of rows effected: %d", resCreate2.RowsAffected)
 	}
-	if tObj2.ID != 2 {
+	if tObj2.ID < 1 {
 		t.Fatalf("wrong object id: %d", tObj2.ID)
 	}
 
@@ -91,13 +100,13 @@ func TestUniqueIndex(t *testing.T) {
 	if resCreate1.RowsAffected != 1 {
 		t.Fatalf("wrong number of rows effected: %d", resCreate1.RowsAffected)
 	}
-	if tObj.ID != 1 {
+	if tObj.ID < 1 {
 		t.Fatalf("wrong object id: %d", tObj.ID)
 	}
 	if resCreate2.RowsAffected != 0 {
 		t.Fatalf("wrong number of rows effected: %d", resCreate2.RowsAffected)
 	}
-	if resCreate2.Error.Error() != "UNIQUE constraint failed: test_objects.id" {
+	if resCreate2.Error.Error() != "ERROR: duplicate key value violates unique constraint \"test_objects_pkey\" (SQLSTATE 23505)" {
 		t.Fatalf("unique index failed")
 	}
 
